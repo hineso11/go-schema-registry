@@ -1,39 +1,46 @@
 package pkg
 
-type SchemaCompatibilityLevel string
-
-const (
-	Backward SchemaCompatibilityLevel = "BACKWARD"
-	BackwardTransitive	SchemaCompatibilityLevel = "BACKWARD_TRANSITIVE"
-	Forward	SchemaCompatibilityLevel = "FORWARD"
-	ForwardTransitive SchemaCompatibilityLevel = "FORWARD_TRANSITIVE"
-	Full	SchemaCompatibilityLevel = "FULL"
-	FullTransitive	SchemaCompatibilityLevel = "FULL_TRANSITIVE"
-	None	SchemaCompatibilityLevel = "NONE"
+import (
+	"net/http"
+	"strconv"
 )
 
-type SchemaRegistryConfig struct {
-	Compatibility SchemaCompatibilityLevel `json:"compatibility"`
+type SchemaCompatibilityLevel string
+
+type SchemaRegistryApiError struct {
+	ErrorCode	int	`json:"error_code"`
+	Message		string	`json:"message"`
+}
+
+func (s SchemaRegistryApiError) Error() string {
+
+	return "schema registry API: " + s.Message + "- error code (" + strconv.Itoa(s.ErrorCode) + ")"
 }
 
 type SchemaRegistryClient interface {
-	GetConfig() (*SchemaRegistryConfig, error)
+	Config() (*SchemaRegistryConfig, error)
+	Subjects(subject *string, deleted *bool) ([]string, error)
+	SubjectVersions(subject string) ([]int, error)
+	SubjectVersion(subject string, version int) (*SchemaVersion, error)
 }
 
 type schemaRegistryClient struct {
 	baseUrl string
 	apiKey *string
 	apiSecret *string
+	httpClient http.Client
 }
 
-func (c schemaRegistryClient) GetConfig() (*SchemaRegistryConfig, error) {
+func (c schemaRegistryClient) baseGetRequest(endpoint string) (*http.Request, error) {
 
-	
+	req, err := http.NewRequest(http.MethodGet, c.baseUrl + endpoint, nil)
 
+	if err != nil {
+		return nil, err
+	}
 
-	return &SchemaRegistryConfig{
-		Compatibility: Backward,
-	}, nil
+	req.SetBasicAuth(*c.apiKey, *c.apiSecret)
+	return req, nil
 }
 
 func NewSchemaRegistryClientWithAuth(baseUrl string, apiKey string, apiSecret string) SchemaRegistryClient {
@@ -42,6 +49,7 @@ func NewSchemaRegistryClientWithAuth(baseUrl string, apiKey string, apiSecret st
 		baseUrl: 	baseUrl,
 		apiKey:    &apiKey,
 		apiSecret: &apiSecret,
+		httpClient: http.Client{},
 	}
 }
 
@@ -49,5 +57,6 @@ func NewSchemaRegistryClient(baseUrl string) SchemaRegistryClient {
 
 	return schemaRegistryClient{
 		baseUrl: baseUrl,
+		httpClient: http.Client{},
 	}
 }
