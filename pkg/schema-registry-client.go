@@ -22,6 +22,7 @@ type SchemaRegistryClient interface {
 	Subjects(subject *string, deleted *bool) ([]string, error)
 	SubjectVersions(subject string) ([]int, error)
 	SubjectVersion(subject string, version int) (*SchemaVersion, error)
+	SubjectVersionSchema(subject string, version int) (string, error)
 }
 
 type schemaRegistryClient struct {

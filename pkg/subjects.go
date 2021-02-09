@@ -13,6 +13,40 @@ type SchemaVersion struct {
 	Schema	string	`json:"schema"`
 }
 
+func (c schemaRegistryClient) SubjectVersionSchema(subject string, version int) (string, error) {
+
+	req, err := c.baseGetRequest("/subjects/" + subject + "/versions/" + strconv.Itoa(version))
+
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.httpClient.Do(req)
+
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		var apiError SchemaRegistryApiError
+		err = json.Unmarshal(body, &apiError)
+
+		if err != nil {
+			return "", err
+		}
+
+		return "", apiError
+	}
+
+	return string(body), nil
+}
+
 func (c schemaRegistryClient) SubjectVersion(subject string, version int) (*SchemaVersion, error) {
 
 	req, err := c.baseGetRequest("/subjects/" + subject + "/versions/" + strconv.Itoa(version))
